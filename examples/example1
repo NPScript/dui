@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# First check if dui tools are installed else use them under build/
+
+which dui_root 2>/dev/null && dr=dui_root || dr=build/dui_root
+which dui_communicator 2>/dev/null && com=dui_communicator || com=build/dui_communicator
+
+$dr & rpid=$!
+
+echo "Waiting for Root: $rpid"
+
+until [ -e "/tmp/dui/$rpid" ]
+do
+	printf "waiting for session FIFO\r"
+done
+echo
+
+echo "Building UI"
+
+echo "4;Build Root;" | build/dui_communicator $rpid 10
+echo "2;root;mainbox;2;1;" | build/dui_communicator $rpid 10
+echo "2;root/mainbox;Label1;0;Guten;" | build/dui_communicator $rpid 10
+echo "2;root/mainbox;Label2;0;Tag;" | build/dui_communicator $rpid 10
+echo "2;root/mainbox;Button1;1;Klick mich!;" | build/dui_communicator $rpid 10
+
+wait $rpid
