@@ -30,7 +30,6 @@ void getfifo() {
 }
 
 void send() {
-	fprintf(stderr, "%s\n", msg);
 	kill(atoi(pid), SIGUSR1);
 
 	fd = open(fifo, O_WRONLY);

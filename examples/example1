@@ -24,5 +24,17 @@ build/dui_wcom $rpid attach "root/mainbox" "subboxbottom" hbox 1
 build/dui_wcom $rpid attach "root/mainbox/subboxtop" "HWLabel" label "Hallo Welt"
 build/dui_wcom $rpid attach "root/mainbox/subboxtop" "BLabel" label "Bye"
 build/dui_wcom $rpid attach "root/mainbox/subboxbottom" "CMButton" button "Click Me!"
+build/dui_wcom $rpid attach "root/mainbox/subboxbottom" "CMButton2" button "Click Me!"
 
+action=$(cat "/tmp/dui/$rpid")
+
+while [ "$action" != "quit" ]; do
+
+	case "$action" in
+		("CMButton clicked") echo "Do Some other stuff here";;
+		(*) echo "Fallback";;
+	esac
+	
+	action=$(cat "/tmp/dui/$rpid")
+done 
 wait $rpid

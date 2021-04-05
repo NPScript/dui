@@ -28,8 +28,10 @@ struct HLE * get_HLE(struct HLE *, char *);
 void run();
 void activate(GtkApplication * app, gpointer user_data);
 void cleanup(struct HLE *);
-int streq(char *, char *);
 void send_ready();
+void send_action(char *);
+void button_clicked(GtkButton *);
+struct HLE * get_HLE_with_widget(struct HLE *, GtkWidget *);
 
 struct HLE {
 	GtkWidget * widget;
@@ -43,6 +45,10 @@ void handle_termination(int sig) {
 	fprintf(stderr, "Caught signal %d\n", sig);
 
 	gtk_window_close(GTK_WINDOW(root.widget));
+	send_action("quit");
+
+	unlink(fifo);
+	cleanup(root.chh);
 }
 
 void handle_usrint(int sig) {
@@ -120,7 +126,7 @@ void attach(char ** arg) {
 	if (!parent) {
 		fprintf(stderr, "Could not find: ");
 		for (int x = 0; path[x]; ++x)
-			fprintf(stderr, "%s", path[x]);
+			fprintf(stderr, "%s/", path[x]);
 
 		fprintf(stderr, "\n");
 		return;
@@ -134,18 +140,26 @@ void attach(char ** arg) {
 		} else {
 			fprintf(stderr, "Could not find: ");
 			for (int x = 0; path[x]; ++x)
-				fprintf(stderr, "%s", path[x]);
+				fprintf(stderr, "%s/", path[x]);
 
 			fprintf(stderr, "\n");
 			return;
 		}
 	}
 
+	if (!parent) {
+		fprintf(stderr, "Could not find: ");
+		for (int x = 0; path[x]; ++x)
+			fprintf(stderr, "%s/", path[x]);
+
+		fprintf(stderr, "\n");
+		return;
+	}
+
 	current = malloc(sizeof(struct HLE));
 	current->next = NULL;
 	current->chh = NULL;
 	strcpy(current->name, arg[1]);
-	fprintf(stderr, "Created: %s\n", current->name);
 
 	int type = atoi(arg[2]);
 
@@ -153,6 +167,7 @@ void attach(char ** arg) {
 		current->widget = gtk_label_new(arg[3]);
 	} else if (type == BUTTON) {
 		current->widget = gtk_button_new_with_label(arg[3]);
+		g_signal_connect(current->widget, "clicked", G_CALLBACK(button_clicked), 0);
 	} else if (type == HBOX) {
 		current->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_box_set_homogeneous(GTK_BOX(current->widget), atoi(arg[3]));
@@ -185,25 +200,52 @@ void attach(char ** arg) {
 
 struct HLE * get_HLE(struct HLE * hle, char * path) {
 	while (strcmp(hle->name, path)) {
-		fprintf(stderr, "Cmp: %s %s\n", path, hle->name);
 		if (hle->next) {
 			hle = hle->next;
 		} else {
 			return NULL;
 		}
 	}
-	fprintf(stderr, "End: %s\n", path);
 
 	return hle;
 }
 
-int streq(char * str1, char * str2) {
-	while (*str1 != 0 || *str2 != 0) {
-		if (*str1 != *str2)
-			return 0;
+void send_action(char * message) {
+	int fd = open(fifo, O_WRONLY);
+	write(fd, message, strlen(message) + 1);
+	close(fd);
+}
+
+void button_clicked(GtkButton * button) {
+	struct HLE * button_hle = get_HLE_with_widget(&root, GTK_WIDGET(button));
+
+	if (button_hle) {
+		char message[COMBUFSIZ] = {0};
+		strcpy(message, button_hle->name);
+		strcat(message, " clicked");
+		send_action(message);
+	} else {
+		fprintf(stderr, "Could not find HLE with widget %i\n", button);
+	}
+}
+
+struct HLE * get_HLE_with_widget(struct HLE * hle, GtkWidget * widget) {
+	if (hle->widget == widget) {
+		return hle;
+	} else {
+		if (hle->chh) {
+			struct HLE * c = get_HLE_with_widget(hle->chh, widget);
+			if (c) {
+				return c;
+			}
+		}
+
+		if (hle->next) {
+			return get_HLE_with_widget(hle->next, widget);
+		}
 	}
 
-	return 1;
+	return NULL;
 }
 
 void run() {
@@ -225,7 +267,6 @@ void activate(GtkApplication * app, gpointer user_data) {
 }
 
 void send_ready() {
-	fprintf(stderr, "Send Ready\n");
 	mkfifo(fifo, 0666);
 }
 
@@ -235,7 +276,7 @@ void cleanup(struct HLE * element) {
 			cleanup(element->chh);
 
 		if (element->next)
-			cleanup(element->chh);
+			cleanup(element->next);
 
 		free(element);
 	}
@@ -255,6 +296,7 @@ int main() {
 
 	run();
 
+	send_action("quit");
 	unlink(fifo);
 
 	cleanup(root.chh);
