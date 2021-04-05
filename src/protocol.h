@@ -9,6 +9,7 @@ enum actions {
 enum widgets {
 	LABEL,
 	BUTTON,
+	ENTRY,
 	HBOX,
 	VBOX,
 	SCROLL

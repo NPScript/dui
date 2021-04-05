@@ -3,11 +3,17 @@
 # First check if dui tools are installed else use them under build/
 
 which dui_root 2>/dev/null && dr=dui_root || dr=build/dui_root
-which dui_wcom 2>/dev/null && com=dui_wcom || com=build/dui_wcom
+which dui_wcom 2>/dev/null && wcom=dui_wcom || wcom=build/dui_wcom
 
 $dr & rpid=$!
 
-echo "Waiting for Root: $rpid"
+echo $rpid
+
+print_entry_text() {
+	$wcom $rpid get "root/mainbox/entry" entry
+	fb=$(cat "/tmp/dui/$rpid")
+	echo "Feedback from Root: $fb"
+}
 
 until [ -e "/tmp/dui/$rpid" ]
 do
@@ -15,26 +21,23 @@ do
 done
 echo
 
-echo "Building UI"
-
-build/dui_wcom $rpid debugecho "Hallo Welt"
-build/dui_wcom $rpid attach "root" "mainbox" vbox 1
-build/dui_wcom $rpid attach "root/mainbox" "subboxtop" hbox 1
-build/dui_wcom $rpid attach "root/mainbox" "subboxbottom" hbox 1
-build/dui_wcom $rpid attach "root/mainbox/subboxtop" "HWLabel" label "Hallo Welt"
-build/dui_wcom $rpid attach "root/mainbox/subboxtop" "BLabel" label "Bye"
-build/dui_wcom $rpid attach "root/mainbox/subboxbottom" "CMButton" button "Click Me!"
-build/dui_wcom $rpid attach "root/mainbox/subboxbottom" "CMButton2" button "Click Me!"
+$wcom $rpid attach "root" "mainbox" vbox 0
+$wcom $rpid attach "root/mainbox" "subboxtop" hbox 1
+$wcom $rpid attach "root/mainbox" "subboxbottom" hbox 1
+$wcom $rpid attach "root/mainbox/subboxtop" "HWLabel" label "Hallo Welt"
+$wcom $rpid attach "root/mainbox/subboxtop" "BLabel" label "Bye"
+$wcom $rpid attach "root/mainbox/subboxbottom" "CMButton" button "Click Me!"
+$wcom $rpid attach "root/mainbox/subboxbottom" "CMButton2" button "Click Me!"
+$wcom $rpid attach "root/mainbox" "entry" entry
 
 action=$(cat "/tmp/dui/$rpid")
 
 while [ "$action" != "quit" ]; do
 
 	case "$action" in
-		("CMButton clicked") echo "Do Some other stuff here";;
+		("CMButton clicked") print_entry_text;;
 		(*) echo "Fallback";;
 	esac
 	
 	action=$(cat "/tmp/dui/$rpid")
 done 
-wait $rpid

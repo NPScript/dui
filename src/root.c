@@ -24,7 +24,7 @@ void handle_usrint(int sig);
 void process_input(char *);
 void debug(char **);
 void attach(char **);
-struct HLE * get_HLE(struct HLE *, char *);
+void get(char **);
 void run();
 void activate(GtkApplication * app, gpointer user_data);
 void cleanup(struct HLE *);
@@ -32,6 +32,8 @@ void send_ready();
 void send_action(char *);
 void button_clicked(GtkButton *);
 struct HLE * get_HLE_with_widget(struct HLE *, GtkWidget *);
+struct HLE * get_HLE(struct HLE *, char *);
+struct HLE * get_HLE_from_path(struct HLE *, char *);
 
 struct HLE {
 	GtkWidget * widget;
@@ -42,7 +44,6 @@ struct HLE {
 } root;
 
 void handle_termination(int sig) {
-	fprintf(stderr, "Caught signal %d\n", sig);
 
 	gtk_window_close(GTK_WINDOW(root.widget));
 	send_action("quit");
@@ -52,16 +53,14 @@ void handle_termination(int sig) {
 }
 
 void handle_usrint(int sig) {
-	fprintf(stderr, "Caught signal %d\n", sig);
 
 	char msg[COMBUFSIZ];
 
 	fd = open(fifo, O_RDONLY);
 	read(fd, msg, COMBUFSIZ);
+	close(fd);
 
 	process_input(msg);
-
-	close(fd);
 }
 
 void process_input(char * input) {
@@ -90,7 +89,7 @@ void process_input(char * input) {
 
 	switch (action) {
 		case SET: break;
-		case GET: break;
+		case GET: get(arg); break;
 		case ATTACH: attach(arg); break;
 		case REMOVE: break;
 		case DEBUGECHO: debug(arg); break;
@@ -106,53 +105,11 @@ void debug(char ** arg) {
 void attach(char ** arg) {
 	struct HLE * parent;
 	struct HLE * current;
-	char * path[MAXDEPTH] = {0};
-	char * last = arg[0];
-	char * c = arg[0];
-	int i = 0;
 
-	for (; *c != 0; ++c) {
-		if (*c == '/') {
-			*c = 0;
-			path[i] = last;
-			last = c + 1;
-			++i;
-		}
-	}
-
-	path[i] = last;
-	parent = get_HLE(&root, path[0]);
-
+	parent = get_HLE_from_path(&root, arg[0]);
+	
 	if (!parent) {
-		fprintf(stderr, "Could not find: ");
-		for (int x = 0; path[x]; ++x)
-			fprintf(stderr, "%s/", path[x]);
-
-		fprintf(stderr, "\n");
-		return;
-	}
-
-	for (i = 1; i < MAXDEPTH; ++i) {
-		if (!path[i])
-			break;
-		if (parent->chh) {
-			parent = get_HLE(parent->chh, path[i]);
-		} else {
-			fprintf(stderr, "Could not find: ");
-			for (int x = 0; path[x]; ++x)
-				fprintf(stderr, "%s/", path[x]);
-
-			fprintf(stderr, "\n");
-			return;
-		}
-	}
-
-	if (!parent) {
-		fprintf(stderr, "Could not find: ");
-		for (int x = 0; path[x]; ++x)
-			fprintf(stderr, "%s/", path[x]);
-
-		fprintf(stderr, "\n");
+		fprintf(stderr, "Could not attach: %s", arg[1]);
 		return;
 	}
 
@@ -168,6 +125,8 @@ void attach(char ** arg) {
 	} else if (type == BUTTON) {
 		current->widget = gtk_button_new_with_label(arg[3]);
 		g_signal_connect(current->widget, "clicked", G_CALLBACK(button_clicked), 0);
+	} else if (type == ENTRY) {
+		current->widget = gtk_entry_new();
 	} else if (type == HBOX) {
 		current->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_box_set_homogeneous(GTK_BOX(current->widget), atoi(arg[3]));
@@ -198,6 +157,28 @@ void attach(char ** arg) {
 	}
 }
 
+void get(char ** arg) {
+	struct HLE * current;
+	int type;
+	char message[COMBUFSIZ];
+	current = get_HLE_from_path(&root, arg[0]);
+
+	if (current) {
+		type = atoi(arg[1]);
+
+		switch (type) {
+			case LABEL: strcpy(message, gtk_label_get_text(GTK_LABEL(current->widget))); break;
+			case BUTTON: strcpy(message, gtk_button_get_label(GTK_BUTTON(current->widget))); break;
+			case ENTRY: strcpy(message, gtk_entry_get_text(GTK_ENTRY(current->widget))); break;
+			default: fprintf(stderr, "Type %i cannot return text\n", type); return;;
+		}
+
+		send_action(message);
+	} else {
+		fprintf(stderr, "%s does not exist.", arg[0]);
+	}
+}
+
 struct HLE * get_HLE(struct HLE * hle, char * path) {
 	while (strcmp(hle->name, path)) {
 		if (hle->next) {
@@ -208,6 +189,42 @@ struct HLE * get_HLE(struct HLE * hle, char * path) {
 	}
 
 	return hle;
+}
+
+struct HLE * get_HLE_from_path(struct HLE * hle, char * pathstr) {
+	struct HLE * parent;
+	char * path[MAXDEPTH] = {0};
+	char * last = pathstr;
+	char * c = pathstr;
+	int i = 0;
+
+	for (; *c != 0; ++c) {
+		if (*c == '/') {
+			*c = 0;
+			path[i] = last;
+			last = c + 1;
+			++i;
+		}
+	}
+
+	path[i] = last;
+	parent = get_HLE(&root, path[0]);
+
+	if (!parent) {
+		return NULL;
+	}
+
+	for (i = 1; i < MAXDEPTH; ++i) {
+		if (!path[i])
+			break;
+		if (parent->chh) {
+			parent = get_HLE(parent->chh, path[i]);
+		} else {
+			return NULL;
+		}
+	}
+
+	return parent;
 }
 
 void send_action(char * message) {
