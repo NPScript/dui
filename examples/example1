@@ -3,7 +3,7 @@
 # First check if dui tools are installed else use them under build/
 
 which dui_root 2>/dev/null && dr=dui_root || dr=build/dui_root
-which dui_communicator 2>/dev/null && com=dui_communicator || com=build/dui_communicator
+which dui_wcom 2>/dev/null && com=dui_wcom || com=build/dui_wcom
 
 $dr & rpid=$!
 
@@ -17,10 +17,12 @@ echo
 
 echo "Building UI"
 
-echo "4;Build Root;" | build/dui_communicator $rpid 10
-echo "2;root;mainbox;2;1;" | build/dui_communicator $rpid 10
-echo "2;root/mainbox;Label1;0;Guten;" | build/dui_communicator $rpid 10
-echo "2;root/mainbox;Label2;0;Tag;" | build/dui_communicator $rpid 10
-echo "2;root/mainbox;Button1;1;Klick mich!;" | build/dui_communicator $rpid 10
+build/dui_wcom $rpid debugecho "Hallo Welt"
+build/dui_wcom $rpid attach "root" "mainbox" vbox 1
+build/dui_wcom $rpid attach "root/mainbox" "subboxtop" hbox 1
+build/dui_wcom $rpid attach "root/mainbox" "subboxbottom" hbox 1
+build/dui_wcom $rpid attach "root/mainbox/subboxtop" "HWLabel" label "Hallo Welt"
+build/dui_wcom $rpid attach "root/mainbox/subboxtop" "BLabel" label "Bye"
+build/dui_wcom $rpid attach "root/mainbox/subboxbottom" "CMButton" button "Click Me!"
 
 wait $rpid
