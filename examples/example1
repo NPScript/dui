@@ -12,7 +12,7 @@ echo $rpid
 print_entry_text() {
 	$wcom $rpid get "root/mainbox/entry" entry
 	fb=$(cat "/tmp/dui/$rpid")
-	echo "Feedback from Root: $fb"
+	$wcom $rpid set "root/mainbox/subboxtop/BLabel" label "$fb"
 }
 
 until [ -e "/tmp/dui/$rpid" ]

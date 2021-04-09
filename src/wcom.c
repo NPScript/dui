@@ -108,7 +108,23 @@ int main(int argc, char ** argv) {
 		} else if (strcmp(argv[4], "entry") == 0) {
 			sprintf(msg, "%i;%s;%i;", GET, argv[3], ENTRY);
 		}
+	} else if (strcmp(argv[2], "set") == 0) {
+		if (argc != 6) {
+			fprintf(stderr, "wcom [pid] set [path] [type] [value]");
+			return -1;
+		}
+
+		strtolower(argv[4]);
+
+		if (strcmp(argv[4], "label") == 0) {
+			sprintf(msg, "%i;%s;%i;%s;", SET, argv[3], LABEL, argv[5]);
+		} else if (strcmp(argv[4], "button") == 0) {
+			sprintf(msg, "%i;%s;%i;%s;", SET, argv[3], BUTTON, argv[5]);
+		} else if (strcmp(argv[4], "entry") == 0) {
+			sprintf(msg, "%i;%s;%i;%s;", SET, argv[3], ENTRY, argv[5]);
+		}
 	}
+
 
 	send();
 

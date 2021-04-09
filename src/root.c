@@ -25,6 +25,7 @@ void process_input(char *);
 void debug(char **);
 void attach(char **);
 void get(char **);
+void set(char **);
 void run();
 void activate(GtkApplication * app, gpointer user_data);
 void cleanup(struct HLE *);
@@ -88,7 +89,7 @@ void process_input(char * input) {
 	action = atoi(input);
 
 	switch (action) {
-		case SET: break;
+		case SET: set(arg); break;
 		case GET: get(arg); break;
 		case ATTACH: attach(arg); break;
 		case REMOVE: break;
@@ -176,6 +177,27 @@ void get(char ** arg) {
 		send_action(message);
 	} else {
 		fprintf(stderr, "%s does not exist.", arg[0]);
+	}
+}
+
+void set(char ** arg) {
+	struct HLE * current;
+	int type;
+	current = get_HLE_from_path(&root , arg[0]);
+
+	if (current) {
+		type = atoi(arg[1]);
+		
+		switch (type) {
+			case LABEL: gtk_label_set_text(GTK_LABEL(current->widget), arg[2]);
+			case BUTTON: gtk_button_set_label(GTK_BUTTON(current->widget), arg[2]);
+			case ENTRY: gtk_entry_set_text(GTK_ENTRY(current->widget), arg[2]);
+			default: fprintf(stderr, "Type %i cannot set text\n", type); return;;
+		}
+
+		gtk_widget_show_all(root.widget);
+	} else {
+		fprintf(stderr, "%s, does ot exist.", arg[0]);
 	}
 }
 
