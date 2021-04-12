@@ -79,7 +79,7 @@ int main(int argc, char ** argv) {
 				fprintf(stderr, "wcom [pid] attach [parent] [name] entry");
 				return -1;
 			}
-			sprintf(msg, "%i;%s;%s;%i;%s;", ATTACH, argv[3], argv[4], ENTRY);
+			sprintf(msg, "%i;%s;%s;%i;", ATTACH, argv[3], argv[4], ENTRY);
 		} else if (strcmp(argv[5], "hbox") == 0) {
 			if (argc != 7) {
 				fprintf(stderr, "wcom [pid] attach [parent] [name] hbox [homogeneous]");
@@ -94,35 +94,17 @@ int main(int argc, char ** argv) {
 			sprintf(msg, "%i;%s;%s;%i;%s;", ATTACH, argv[3], argv[4], VBOX, argv[6]);
 		}
 	} else if (strcmp(argv[2], "get") == 0) {
-		if (argc != 5) {
-			fprintf(stderr, "wcom [pid] get [path] [type]");
+		if (argc != 4) {
+			fprintf(stderr, "wcom [pid] get [path]");
 			return -1;
 		}
-
-		strtolower(argv[4]);
-
-		if (strcmp(argv[4], "label") == 0) {
-			sprintf(msg, "%i;%s;%i;", GET, argv[3], LABEL);
-		} else if (strcmp(argv[4], "button") == 0) {
-			sprintf(msg, "%i;%s;%i;", GET, argv[3], BUTTON);
-		} else if (strcmp(argv[4], "entry") == 0) {
-			sprintf(msg, "%i;%s;%i;", GET, argv[3], ENTRY);
-		}
+		sprintf(msg, "%i;%s;", GET, argv[3]);
 	} else if (strcmp(argv[2], "set") == 0) {
-		if (argc != 6) {
-			fprintf(stderr, "wcom [pid] set [path] [type] [value]");
+		if (argc != 5) {
+			fprintf(stderr, "wcom [pid] set [path] [value]");
 			return -1;
 		}
-
-		strtolower(argv[4]);
-
-		if (strcmp(argv[4], "label") == 0) {
-			sprintf(msg, "%i;%s;%i;%s;", SET, argv[3], LABEL, argv[5]);
-		} else if (strcmp(argv[4], "button") == 0) {
-			sprintf(msg, "%i;%s;%i;%s;", SET, argv[3], BUTTON, argv[5]);
-		} else if (strcmp(argv[4], "entry") == 0) {
-			sprintf(msg, "%i;%s;%i;%s;", SET, argv[3], ENTRY, argv[5]);
-		}
+		sprintf(msg, "%i;%s;%s;", SET, argv[3], argv[4]);
 	}
 
 

@@ -10,9 +10,9 @@ $dr & rpid=$!
 echo $rpid
 
 print_entry_text() {
-	$wcom $rpid get "root/mainbox/entry" entry
+	$wcom $rpid get "root/mainbox/entry"
 	fb=$(cat "/tmp/dui/$rpid")
-	$wcom $rpid set "root/mainbox/subboxtop/BLabel" label "$fb"
+	$wcom $rpid set "root/mainbox/subboxtop/BLabel" "$fb"
 }
 
 until [ -e "/tmp/dui/$rpid" ]

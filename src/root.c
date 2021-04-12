@@ -42,6 +42,7 @@ struct HLE {
 	struct HLE * prev;
 	struct HLE * next;
 	char name[32];
+	unsigned type;
 } root;
 
 void handle_termination(int sig) {
@@ -142,8 +143,11 @@ void attach(char ** arg) {
 		return;
 	}
 
+	current->type = type;
 	gtk_container_add(GTK_CONTAINER(parent->widget), current->widget);
 	gtk_widget_show_all(parent->widget);
+
+	fprintf(stderr, "Created: %s, of type %i\n", current->name, current->type);
 
 	if (parent->chh) {
 		parent = parent->chh;
@@ -160,18 +164,16 @@ void attach(char ** arg) {
 
 void get(char ** arg) {
 	struct HLE * current;
-	int type;
 	char message[COMBUFSIZ];
 	current = get_HLE_from_path(&root, arg[0]);
 
 	if (current) {
-		type = atoi(arg[1]);
 
-		switch (type) {
+		switch (current->type) {
 			case LABEL: strcpy(message, gtk_label_get_text(GTK_LABEL(current->widget))); break;
 			case BUTTON: strcpy(message, gtk_button_get_label(GTK_BUTTON(current->widget))); break;
 			case ENTRY: strcpy(message, gtk_entry_get_text(GTK_ENTRY(current->widget))); break;
-			default: fprintf(stderr, "Type %i cannot return text\n", type); return;;
+			default: fprintf(stderr, "Type %i cannot return text\n", current->type); return;;
 		}
 
 		send_action(message);
@@ -182,17 +184,15 @@ void get(char ** arg) {
 
 void set(char ** arg) {
 	struct HLE * current;
-	int type;
 	current = get_HLE_from_path(&root , arg[0]);
 
 	if (current) {
-		type = atoi(arg[1]);
 		
-		switch (type) {
-			case LABEL: gtk_label_set_text(GTK_LABEL(current->widget), arg[2]);
-			case BUTTON: gtk_button_set_label(GTK_BUTTON(current->widget), arg[2]);
-			case ENTRY: gtk_entry_set_text(GTK_ENTRY(current->widget), arg[2]);
-			default: fprintf(stderr, "Type %i cannot set text\n", type); return;;
+		switch (current->type) {
+			case LABEL: gtk_label_set_text(GTK_LABEL(current->widget), arg[1]);
+			case BUTTON: gtk_button_set_label(GTK_BUTTON(current->widget), arg[1]);
+			case ENTRY: gtk_entry_set_text(GTK_ENTRY(current->widget), arg[1]);
+			default: fprintf(stderr, "Type %i cannot set text\n", current->type); return;;
 		}
 
 		gtk_widget_show_all(root.widget);
